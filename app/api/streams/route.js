@@ -34,16 +34,38 @@ export async function POST(request) {
 
 //The GET handler retrieves all streams from the database using Prisma’s findMany method, including related students. It waits for the database query to complete and then returns the result as JSON. If an error occurs, it returns a 500 error response.
 
-// DELETE — remove a stream
 export async function DELETE(request) {
   try {
     const body = await request.json()
+
+    // Delete scores of all students in this stream
+    const students = await prisma.student.findMany({
+      where: { streamId: body.id }
+    })
+    for (const student of students) {
+      await prisma.score.deleteMany({
+        where: { studentId: student.id }
+      })
+    }
+
+    // Delete students in this stream
+    await prisma.student.deleteMany({
+      where: { streamId: body.id }
+    })
+
+    // Delete stream subject assignments
+    await prisma.streamSubject.deleteMany({
+      where: { streamId: body.id }
+    })
+
+    // Finally delete the stream
     await prisma.stream.delete({
       where: { id: body.id }
     })
+
     return NextResponse.json({ message: 'Stream deleted' })
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to delete stream' }, { status: 500 })
+    return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }
 
