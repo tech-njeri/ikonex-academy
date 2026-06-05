@@ -1,3 +1,6 @@
+// © 2026 Joy Njeri. Submitted for Ikonex Systems Intern Assessment.
+// Evaluation use only. All rights reserved.
+
 'use client'
 
 import { useEffect, useState } from 'react'
