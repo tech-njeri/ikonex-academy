@@ -1,0 +1,65 @@
+generator client {
+  provider = "prisma-client-js"
+  output = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl = env("DATABASE_URL")
+}
+
+model Stream {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  students  Student[]
+  subjects  StreamSubject[]
+  createdAt DateTime @default(now())
+}
+
+model Student {
+  id          Int      @id @default(autoincrement())
+  name        String
+  admissionNo String   @unique
+  streamId    Int
+  stream      Stream   @relation(fields: [streamId], references: [id])
+  scores      Score[]
+  createdAt   DateTime @default(now())
+}
+
+model Subject {
+  id       Int      @id @default(autoincrement())
+  name     String   @unique
+  streams  StreamSubject[]
+  scores   Score[]
+}
+
+model StreamSubject {
+  id        Int     @id @default(autoincrement())
+  streamId  Int
+  subjectId Int
+  stream    Stream  @relation(fields: [streamId], references: [id])
+  subject   Subject @relation(fields: [subjectId], references: [id])
+
+  @@unique([streamId, subjectId])
+}
+
+model Score {
+  id         Int     @id @default(autoincrement())
+  studentId  Int
+  subjectId  Int
+  examScore  Float
+  catScore   Float
+  student    Student @relation(fields: [studentId], references: [id])
+  subject    Subject @relation(fields: [subjectId], references: [id])
+
+  @@unique([studentId, subjectId])
+}
+
+model GradeScale {
+  id       Int    @id @default(autoincrement())
+  minScore Float
+  maxScore Float
+  grade    String
+  points   Float
+}
