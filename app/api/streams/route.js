@@ -46,3 +46,16 @@ export async function DELETE(request) {
     return NextResponse.json({ error: 'Failed to delete stream' }, { status: 500 })
   }
 }
+
+export async function PUT(request) {
+  try {
+    const body = await request.json()
+    const stream = await prisma.stream.update({
+      where: { id: body.id },
+      data: { name: body.name }
+    })
+    return NextResponse.json(stream)
+  } catch (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+}

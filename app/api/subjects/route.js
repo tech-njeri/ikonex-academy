@@ -45,3 +45,16 @@ export async function DELETE(request) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }
+
+export async function PUT(request) {
+  try {
+    const body = await request.json()
+    const subject = await prisma.subject.update({
+      where: { id: body.id },
+      data: { name: body.name }
+    })
+    return NextResponse.json(subject)
+  } catch (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+}

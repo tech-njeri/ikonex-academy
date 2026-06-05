@@ -53,3 +53,20 @@ export async function DELETE(request) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }
+
+export async function PUT(request) {
+  try {
+    const body = await request.json()
+    const student = await prisma.student.update({
+      where: { id: body.id },
+      data: {
+        name: body.name,
+        admissionNo: body.admissionNo,
+        streamId: body.streamId
+      }
+    })
+    return NextResponse.json(student)
+  } catch (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+}

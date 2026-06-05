@@ -9,6 +9,7 @@ export default function SubjectsPage() {
   const [subjects, setSubjects] = useState([])
   const [name, setName] = useState('')
   const [loading, setLoading] = useState(false)
+  const [editingSubject, setEditingSubject] = useState(null)
 
   useEffect(() => {
     fetchSubjects()
@@ -17,23 +18,44 @@ export default function SubjectsPage() {
   async function fetchSubjects() {
     const res = await fetch('/api/subjects')
     const data = await res.json()
-    console.log('subjects:', data)
     setSubjects(data)
   }
 
   async function createSubject() {
     if (!name) return alert('Please enter a subject name')
     setLoading(true)
-    const res = await fetch('/api/subjects', {
+    await fetch('/api/subjects', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name })
     })
-    const data = await res.json()
-    console.log('create response:', data)
     setName('')
     setLoading(false)
     fetchSubjects()
+  }
+
+  async function updateSubject() {
+    if (!name) return alert('Please enter a subject name')
+    setLoading(true)
+    await fetch('/api/subjects', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: editingSubject.id, name })
+    })
+    setName('')
+    setEditingSubject(null)
+    setLoading(false)
+    fetchSubjects()
+  }
+
+  function startEdit(subject) {
+    setEditingSubject(subject)
+    setName(subject.name)
+  }
+
+  function cancelEdit() {
+    setEditingSubject(null)
+    setName('')
   }
 
   async function deleteSubject(id) {
@@ -49,7 +71,7 @@ export default function SubjectsPage() {
     <div className="p-8 max-w-2xl mx-auto">
       <h1 className="text-3xl font-bold mb-6">Subjects</h1>
 
-      {/* Create Subject Form */}
+      {/* Create / Edit Form */}
       <div className="flex gap-3 mb-8">
         <input
           type="text"
@@ -59,12 +81,20 @@ export default function SubjectsPage() {
           className="border rounded px-4 py-2 flex-1"
         />
         <button
-          onClick={createSubject}
+          onClick={editingSubject ? updateSubject : createSubject}
           disabled={loading}
           className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700"
         >
-          {loading ? 'Creating...' : 'Add Subject'}
+          {loading ? 'Saving...' : editingSubject ? 'Update' : 'Add Subject'}
         </button>
+        {editingSubject && (
+          <button
+            onClick={cancelEdit}
+            className="border px-4 py-2 rounded hover:bg-gray-50"
+          >
+            Cancel
+          </button>
+        )}
       </div>
 
       {/* Subjects List */}
@@ -75,12 +105,20 @@ export default function SubjectsPage() {
           {subjects.map((subject) => (
             <li key={subject.id} className="border rounded p-4 flex justify-between items-center">
               <span className="font-medium">{subject.name}</span>
-              <button
-                onClick={() => deleteSubject(subject.id)}
-                className="text-red-500 hover:text-red-700 text-sm"
-              >
-                Delete
-              </button>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => startEdit(subject)}
+                  className="text-blue-500 hover:text-blue-700 text-sm"
+                >
+                  Edit
+                </button>
+                <button
+                  onClick={() => deleteSubject(subject.id)}
+                  className="text-red-500 hover:text-red-700 text-sm"
+                >
+                  Delete
+                </button>
+              </div>
             </li>
           ))}
         </ul>
