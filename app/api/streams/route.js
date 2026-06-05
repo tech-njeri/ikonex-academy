@@ -65,6 +65,7 @@ export async function DELETE(request) {
 
     return NextResponse.json({ message: 'Stream deleted' })
   } catch (error) {
+    console.error('DELETE STREAM ERROR:', error.message)
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }
