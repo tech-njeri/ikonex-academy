@@ -21,6 +21,7 @@ export default function RootLayout({ children }) {
           <Link href="/stream-subjects" className="hover:underline">Assign Subjects</Link>
           <Link href="/scores" className="hover:underline">Scores</Link>
           <Link href="/results" className="hover:underline">Results</Link>
+          <Link href="/reports/class" className="hover:underline">Class Report</Link>
         </nav>
         <main>
           {children}
