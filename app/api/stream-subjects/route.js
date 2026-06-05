@@ -1,5 +1,6 @@
 // © 2026 Joy Njeri. Submitted for Ikonex Systems Intern Assessment.
 // Evaluation use only. All rights reserved.
+export const dynamic = 'force-dynamic'
 
 import { NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
