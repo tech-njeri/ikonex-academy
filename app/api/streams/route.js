@@ -38,6 +38,11 @@ export async function DELETE(request) {
   try {
     const body = await request.json()
 
+    // Delete stream subject assignments FIRST
+    await prisma.streamSubject.deleteMany({
+      where: { streamId: body.id }
+    })
+
     // Delete scores of all students in this stream
     const students = await prisma.student.findMany({
       where: { streamId: body.id }
@@ -50,11 +55,6 @@ export async function DELETE(request) {
 
     // Delete students in this stream
     await prisma.student.deleteMany({
-      where: { streamId: body.id }
-    })
-
-    // Delete stream subject assignments
-    await prisma.streamSubject.deleteMany({
       where: { streamId: body.id }
     })
 
