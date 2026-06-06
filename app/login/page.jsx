@@ -43,6 +43,7 @@ export default function LoginPage() {
           placeholder="Email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
+          onKeyDown={handleKeyDown}
           className="border border-gray-600 rounded px-4 py-2 w-full bg-gray-900 text-white placeholder-gray-500"
         />
         <input
@@ -50,7 +51,8 @@ export default function LoginPage() {
           placeholder="Password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="border rounded px-4 py-2 w-full"
+          onKeyDown={handleKeyDown}
+          className="border border-gray-600 rounded px-4 py-2 w-full bg-gray-900 text-white placeholder-gray-500"
         />
         {error && <p className="text-red-500 text-sm">{error}</p>}
         <button
