@@ -1,3 +1,6 @@
+// © 2026 Joy Njeri. Submitted for Ikonex Systems Intern Assessment.
+// Evaluation use only. All rights reserved.
+
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -10,6 +13,9 @@ export default function StudentsPage() {
   const [streamId, setStreamId] = useState('')
   const [loading, setLoading] = useState(false)
   const [editingStudent, setEditingStudent] = useState(null)
+  const [fetchError, setFetchError] = useState(null)
+  const [formError, setFormError] = useState(null)
+  const [deleteError, setDeleteError] = useState(null)
 
   useEffect(() => {
     fetchStudents()
@@ -17,46 +23,91 @@ export default function StudentsPage() {
   }, [])
 
   async function fetchStudents() {
-    const res = await fetch('/api/students')
-    const data = await res.json()
-    setStudents(data)
+    try {
+      const res = await fetch('/api/students')
+      if (!res.ok) throw new Error('Failed to load students.')
+      const data = await res.json()
+      setStudents(data)
+    } catch (err) {
+      setFetchError(err.message)
+    }
   }
 
   async function fetchStreams() {
-    const res = await fetch('/api/streams')
-    const data = await res.json()
-    setStreams(data)
+    try {
+      const res = await fetch('/api/streams')
+      if (!res.ok) throw new Error('Failed to load streams.')
+      const data = await res.json()
+      setStreams(data)
+    } catch (err) {
+      setFetchError(err.message)
+    }
   }
 
   async function createStudent() {
-    if (!name || !admissionNo || !streamId) return alert('Please fill all fields')
+    if (!name.trim() || !admissionNo.trim() || !streamId) {
+      setFormError('All fields are required.')
+      return
+    }
+    setFormError(null)
     setLoading(true)
-    await fetch('/api/students', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, admissionNo, streamId: parseInt(streamId) })
-    })
-    setName('')
-    setAdmissionNo('')
-    setStreamId('')
-    setLoading(false)
-    fetchStudents()
+    try {
+      const res = await fetch('/api/students', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: name.trim(),
+          admissionNo: admissionNo.trim(),
+          streamId: parseInt(streamId)
+        })
+      })
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.error ?? 'Failed to create student.')
+      }
+      setName('')
+      setAdmissionNo('')
+      setStreamId('')
+      await fetchStudents()
+    } catch (err) {
+      setFormError(err.message)
+    } finally {
+      setLoading(false)
+    }
   }
 
   async function updateStudent() {
-    if (!name || !admissionNo || !streamId) return alert('Please fill all fields')
+    if (!name.trim() || !admissionNo.trim() || !streamId) {
+      setFormError('All fields are required.')
+      return
+    }
+    setFormError(null)
     setLoading(true)
-    await fetch('/api/students', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: editingStudent.id, name, admissionNo, streamId: parseInt(streamId) })
-    })
-    setName('')
-    setAdmissionNo('')
-    setStreamId('')
-    setEditingStudent(null)
-    setLoading(false)
-    fetchStudents()
+    try {
+      const res = await fetch('/api/students', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: editingStudent.id,
+          name: name.trim(),
+          admissionNo: admissionNo.trim(),
+          streamId: parseInt(streamId)
+        })
+      })
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.error ?? 'Failed to update student.')
+      }
+      setName('')
+      setAdmissionNo('')
+      setStreamId('')
+      setEditingStudent(null)
+      await fetchStudents()
+    } catch (err) {
+      setFormError(err.message)
+    } finally {
+      setLoading(false)
+    }
   }
 
   function startEdit(student) {
@@ -64,6 +115,8 @@ export default function StudentsPage() {
     setName(student.name)
     setAdmissionNo(student.admissionNo)
     setStreamId(student.streamId)
+    setFormError(null)
+    setDeleteError(null)
   }
 
   function cancelEdit() {
@@ -71,27 +124,25 @@ export default function StudentsPage() {
     setName('')
     setAdmissionNo('')
     setStreamId('')
+    setFormError(null)
   }
 
   async function deleteStudent(id) {
-    await fetch('/api/students', {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id })
-    })
-    fetchStudents()
-  }
-
-  async function deleteAllStudents() {
-    if (!confirm('Are you sure you want to delete ALL students? This cannot be undone.')) return
-    for (const s of students) {
-      await fetch('/api/students', {
+    setDeleteError(null)
+    try {
+      const res = await fetch('/api/students', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: s.id })
+        body: JSON.stringify({ id })
       })
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.error ?? 'Failed to delete student.')
+      }
+      await fetchStudents()
+    } catch (err) {
+      setDeleteError(err.message)
     }
-    await fetchStudents()
   }
 
   return (
@@ -107,19 +158,28 @@ export default function StudentsPage() {
           type="text"
           placeholder="Full Name"
           value={name}
-          onChange={(e) => setName(e.target.value)}
+          onChange={(e) => {
+            setName(e.target.value)
+            setFormError(null)
+          }}
           className="border rounded px-4 py-2 w-full"
         />
         <input
           type="text"
           placeholder="Admission Number e.g. ADM001"
           value={admissionNo}
-          onChange={(e) => setAdmissionNo(e.target.value)}
+          onChange={(e) => {
+            setAdmissionNo(e.target.value)
+            setFormError(null)
+          }}
           className="border rounded px-4 py-2 w-full"
         />
         <select
           value={streamId}
-          onChange={(e) => setStreamId(e.target.value)}
+          onChange={(e) => {
+            setStreamId(e.target.value)
+            setFormError(null)
+          }}
           className="border rounded px-4 py-2 w-full"
         >
           <option value="">Select Stream</option>
@@ -129,11 +189,17 @@ export default function StudentsPage() {
             </option>
           ))}
         </select>
+
+        {/* Inline form error */}
+        {formError && (
+          <p className="text-red-500 text-sm">{formError}</p>
+        )}
+
         <div className="flex gap-3">
           <button
             onClick={editingStudent ? updateStudent : createStudent}
             disabled={loading}
-            className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 flex-1"
+            className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 disabled:opacity-50 flex-1"
           >
             {loading ? 'Saving...' : editingStudent ? 'Update Student' : 'Register Student'}
           </button>
@@ -148,18 +214,18 @@ export default function StudentsPage() {
         </div>
       </div>
 
-      {/* Delete All */}
-      {students.length > 0 && (
-        <button
-          onClick={deleteAllStudents}
-          className="text-red-500 border border-red-300 px-4 py-2 rounded hover:bg-red-50 mb-4"
-        >
-          Delete All Students
-        </button>
+      {/* Fetch error */}
+      {fetchError && (
+        <p className="text-red-500 mb-4">{fetchError}</p>
+      )}
+
+      {/* Delete error */}
+      {deleteError && (
+        <p className="text-red-500 text-sm mb-4">{deleteError}</p>
       )}
 
       {/* Students List */}
-      {students.length === 0 ? (
+      {students.length === 0 && !fetchError ? (
         <p className="text-gray-500">No students yet. Register one above.</p>
       ) : (
         <ul className="space-y-3">
@@ -167,7 +233,9 @@ export default function StudentsPage() {
             <li key={student.id} className="border rounded p-4 flex justify-between items-center">
               <div>
                 <p className="font-medium">{student.name}</p>
-                <p className="text-sm text-gray-500">{student.admissionNo} — {student.stream.name}</p>
+                <p className="text-sm text-gray-500">
+                  {student.admissionNo} — {student.stream?.name ?? 'No stream'}
+                </p>
               </div>
               <div className="flex gap-3">
                 <button

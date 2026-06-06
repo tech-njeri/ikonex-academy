@@ -28,17 +28,25 @@ const styles = StyleSheet.create({
   footer: { marginTop: 40, fontSize: 9, color: '#aaa', textAlign: 'center' }
 })
 
-function ReportCard({ student }) {
-  const total = student.scores.reduce((sum, s) => sum + s.examScore + s.catScore, 0)
-  const average = student.scores.length > 0 ? (total / student.scores.length).toFixed(2) : 0
+// Moved outside component — no need to redefine on every render
+function getGrade(avg) {
+  if (avg >= 80) return 'A'
+  if (avg >= 60) return 'B'
+  if (avg >= 50) return 'C'
+  if (avg >= 40) return 'D'
+  return 'E'
+}
 
-  function getGrade(avg) {
-    if (avg >= 80) return 'A'
-    if (avg >= 60) return 'B'
-    if (avg >= 50) return 'C'
-    if (avg >= 40) return 'D'
-    return 'E'
-  }
+function ReportCard({ student }) {
+  // Guard against missing or invalid scores
+  const validScores = student.scores.filter(
+    s => typeof s.examScore === 'number' && typeof s.catScore === 'number'
+  )
+
+  const total = validScores.reduce((sum, s) => sum + s.examScore + s.catScore, 0)
+  const average = validScores.length > 0
+    ? parseFloat((total / validScores.length).toFixed(2))
+    : 0
 
   return (
     <Document>
@@ -56,7 +64,7 @@ function ReportCard({ student }) {
           <Text style={styles.label}>Admission Number</Text>
           <Text style={styles.value}>{student.admissionNo}</Text>
           <Text style={styles.label}>Class Stream</Text>
-          <Text style={styles.value}>{student.stream.name}</Text>
+          <Text style={styles.value}>{student.stream?.name ?? 'N/A'}</Text>
         </View>
 
         {/* Scores Table */}
@@ -67,14 +75,20 @@ function ReportCard({ student }) {
             <Text style={styles.col3}>CAT</Text>
             <Text style={styles.col4}>Total</Text>
           </View>
-          {student.scores.map((score, i) => (
-            <View key={i} style={styles.tableRow}>
-              <Text style={styles.col1}>{score.subject.name}</Text>
-              <Text style={styles.col2}>{score.examScore}</Text>
-              <Text style={styles.col3}>{score.catScore}</Text>
-              <Text style={styles.col4}>{score.examScore + score.catScore}</Text>
+          {validScores.length > 0 ? (
+            validScores.map((score, i) => (
+              <View key={score.id ?? i} style={styles.tableRow}>
+                <Text style={styles.col1}>{score.subject?.name ?? 'Unknown'}</Text>
+                <Text style={styles.col2}>{score.examScore}</Text>
+                <Text style={styles.col3}>{score.catScore}</Text>
+                <Text style={styles.col4}>{score.examScore + score.catScore}</Text>
+              </View>
+            ))
+          ) : (
+            <View style={styles.tableRow}>
+              <Text style={styles.col1}>No scores recorded.</Text>
             </View>
-          ))}
+          )}
         </View>
 
         {/* Summary */}
@@ -98,21 +112,42 @@ export default function ReportPage() {
   const { studentId } = useParams()
   const [student, setStudent] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
 
   useEffect(() => {
+    if (!studentId) return
+
     async function fetchStudent() {
-      const res = await fetch(`/api/students/${studentId}`)
-      const data = await res.json()
-      console.log('student data:', data)
-      setStudent(data)
-      setLoading(false)
+      try {
+        const res = await fetch(`/api/students/${studentId}`)
+
+        // Handle non-2xx responses before parsing JSON
+        if (!res.ok) {
+          const data = await res.json()
+          throw new Error(data.error ?? 'Failed to fetch student.')
+        }
+
+        const data = await res.json()
+        setStudent(data)
+      } catch (err) {
+        console.error('[ReportPage] fetch error:', err)
+        setError(err.message)
+      } finally {
+        setLoading(false)
+      }
     }
+
     fetchStudent()
   }, [studentId])
 
-  if (loading) return <div className="p-8">Loading report...</div>
-  if (!student) return <div className="p-8">Student not found.</div>
-   if (!student.stream) return <div className="p-8">Student data incomplete.</div>
+  if (loading) return <div className="p-8 text-gray-500">Loading report...</div>
+  if (error) return <div className="p-8 text-red-500">Error: {error}</div>
+  if (!student) return <div className="p-8 text-gray-500">Student not found.</div>
+  if (!student.stream) return <div className="p-8 text-gray-500">Student data incomplete — stream missing.</div>
+
+  const validScores = student.scores.filter(
+    s => typeof s.examScore === 'number' && typeof s.catScore === 'number'
+  )
 
   return (
     <div className="p-8 max-w-2xl mx-auto">
@@ -121,14 +156,18 @@ export default function ReportPage() {
 
       {/* Score Preview */}
       <div className="border rounded p-6 mb-6 space-y-2">
-        {student.scores.map(score => (
-          <div key={score.id} className="flex justify-between">
-            <span>{score.subject.name}</span>
-            <span className="text-gray-500">
-              Exam: {score.examScore} | CAT: {score.catScore} | Total: {score.examScore + score.catScore}
-            </span>
-          </div>
-        ))}
+        {validScores.length > 0 ? (
+          validScores.map(score => (
+            <div key={score.id} className="flex justify-between">
+              <span>{score.subject?.name ?? 'Unknown'}</span>
+              <span className="text-gray-500">
+                Exam: {score.examScore} | CAT: {score.catScore} | Total: {score.examScore + score.catScore}
+              </span>
+            </div>
+          ))
+        ) : (
+          <p className="text-gray-400">No scores recorded for this student.</p>
+        )}
       </div>
 
       {/* Download Button */}

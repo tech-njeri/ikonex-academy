@@ -1,24 +1,53 @@
 // © 2026 Joy Njeri. Submitted for Ikonex Systems Intern Assessment.
 // Evaluation use only. All rights reserved.
+
 export const dynamic = 'force-dynamic'
 
 import { NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/authOptions'
 import prisma from '@/lib/prisma'
 
-function getGrade(total) {
-  if (total >= 80) return 'A'
-  if (total >= 60) return 'B'
-  if (total >= 50) return 'C'
-  if (total >= 40) return 'D'
+function getGrade(average) {
+  if (typeof average !== 'number' || isNaN(average)) return 'N/A'
+  if (average >= 80) return 'A'
+  if (average >= 60) return 'B'
+  if (average >= 50) return 'C'
+  if (average >= 40) return 'D'
   return 'E'
 }
 
+function assignPositions(results) {
+  let position = 1
+  results.forEach((student, index) => {
+    if (index === 0) {
+      student.position = 1
+    } else if (student.total === results[index - 1].total) {
+      // Tied — same position as previous student
+      student.position = results[index - 1].position
+    } else {
+      // Skip positions equal to number of tied students above
+      position = index + 1
+      student.position = position
+    }
+  })
+}
+
 export async function GET(request) {
+  const session = await getServerSession(authOptions)
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
   try {
     const { searchParams } = new URL(request.url)
-    const streamId = parseInt(searchParams.get('streamId'))
+    const rawStreamId = searchParams.get('streamId')
 
-    // Get all students in the stream
+    const streamId = parseInt(rawStreamId)
+    if (!rawStreamId || isNaN(streamId)) {
+      return NextResponse.json({ error: 'Invalid or missing streamId' }, { status: 400 })
+    }
+
     const students = await prisma.student.findMany({
       where: { streamId },
       include: {
@@ -28,10 +57,14 @@ export async function GET(request) {
       }
     })
 
-    // Calculate results for each student
     const results = students.map(student => {
-      const total = student.scores.reduce((sum, s) => sum + s.examScore + s.catScore, 0)
-      const average = student.scores.length > 0 ? total / student.scores.length : 0
+      const validScores = student.scores.filter(
+        s => typeof s.examScore === 'number' && typeof s.catScore === 'number'
+        && !isNaN(s.examScore) && !isNaN(s.catScore)
+      )
+
+      const total = validScores.reduce((sum, s) => sum + s.examScore + s.catScore, 0)
+      const average = validScores.length > 0 ? total / validScores.length : 0
       const grade = getGrade(average)
 
       return {
@@ -45,12 +78,21 @@ export async function GET(request) {
       }
     })
 
-    // Rank students by total marks
     results.sort((a, b) => b.total - a.total)
-    results.forEach((r, index) => r.position = index + 1)
+    assignPositions(results)
 
     return NextResponse.json(results)
   } catch (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    console.error('[GET /api/results]', error)
+    return NextResponse.json(
+      { error: 'Failed to fetch results. Please try again.' },
+      { status: 500 }
+    )
   }
 }
+
+
+//auth
+//error leaking
+//NaN/null guards
+//Tied positions

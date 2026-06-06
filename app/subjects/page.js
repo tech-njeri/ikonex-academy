@@ -10,61 +10,107 @@ export default function SubjectsPage() {
   const [name, setName] = useState('')
   const [loading, setLoading] = useState(false)
   const [editingSubject, setEditingSubject] = useState(null)
+  const [fetchError, setFetchError] = useState(null)
+  const [formError, setFormError] = useState(null)
+  const [deleteError, setDeleteError] = useState(null)
 
   useEffect(() => {
     fetchSubjects()
   }, [])
 
   async function fetchSubjects() {
-    const res = await fetch('/api/subjects')
-    const data = await res.json()
-    setSubjects(data)
+    try {
+      const res = await fetch('/api/subjects')
+      if (!res.ok) throw new Error('Failed to load subjects.')
+      const data = await res.json()
+      setSubjects(data)
+    } catch (err) {
+      setFetchError(err.message)
+    }
   }
 
   async function createSubject() {
-    if (!name) return alert('Please enter a subject name')
+    if (!name.trim()) {
+      setFormError('Subject name is required.')
+      return
+    }
+    setFormError(null)
     setLoading(true)
-    await fetch('/api/subjects', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name })
-    })
-    setName('')
-    setLoading(false)
-    fetchSubjects()
+    try {
+      const res = await fetch('/api/subjects', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: name.trim() })
+      })
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.error ?? 'Failed to create subject.')
+      }
+      setName('')
+      await fetchSubjects()
+    } catch (err) {
+      setFormError(err.message)
+    } finally {
+      setLoading(false)
+    }
   }
 
   async function updateSubject() {
-    if (!name) return alert('Please enter a subject name')
+    if (!name.trim()) {
+      setFormError('Subject name is required.')
+      return
+    }
+    setFormError(null)
     setLoading(true)
-    await fetch('/api/subjects', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: editingSubject.id, name })
-    })
-    setName('')
-    setEditingSubject(null)
-    setLoading(false)
-    fetchSubjects()
+    try {
+      const res = await fetch('/api/subjects', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: editingSubject.id, name: name.trim() })
+      })
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.error ?? 'Failed to update subject.')
+      }
+      setName('')
+      setEditingSubject(null)
+      await fetchSubjects()
+    } catch (err) {
+      setFormError(err.message)
+    } finally {
+      setLoading(false)
+    }
   }
 
   function startEdit(subject) {
     setEditingSubject(subject)
     setName(subject.name)
+    setFormError(null)
+    setDeleteError(null)
   }
 
   function cancelEdit() {
     setEditingSubject(null)
     setName('')
+    setFormError(null)
   }
 
   async function deleteSubject(id) {
-    await fetch('/api/subjects', {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id })
-    })
-    fetchSubjects()
+    setDeleteError(null)
+    try {
+      const res = await fetch('/api/subjects', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id })
+      })
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.error ?? 'Failed to delete subject.')
+      }
+      await fetchSubjects()
+    } catch (err) {
+      setDeleteError(err.message)
+    }
   }
 
   return (
@@ -72,18 +118,21 @@ export default function SubjectsPage() {
       <h1 className="text-3xl font-bold mb-6">Subjects</h1>
 
       {/* Create / Edit Form */}
-      <div className="flex gap-3 mb-8">
+      <div className="flex gap-3 mb-2">
         <input
           type="text"
           placeholder="e.g. Mathematics"
           value={name}
-          onChange={(e) => setName(e.target.value)}
+          onChange={(e) => {
+            setName(e.target.value)
+            setFormError(null)
+          }}
           className="border rounded px-4 py-2 flex-1"
         />
         <button
           onClick={editingSubject ? updateSubject : createSubject}
           disabled={loading}
-          className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700"
+          className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
         >
           {loading ? 'Saving...' : editingSubject ? 'Update' : 'Add Subject'}
         </button>
@@ -97,11 +146,26 @@ export default function SubjectsPage() {
         )}
       </div>
 
+      {/* Inline form error */}
+      {formError && (
+        <p className="text-red-500 text-sm mb-6">{formError}</p>
+      )}
+
+      {/* Fetch error */}
+      {fetchError && (
+        <p className="text-red-500 mb-4">{fetchError}</p>
+      )}
+
+      {/* Delete error */}
+      {deleteError && (
+        <p className="text-red-500 text-sm mb-4">{deleteError}</p>
+      )}
+
       {/* Subjects List */}
-      {subjects.length === 0 ? (
-        <p className="text-gray-500">No subjects yet. Add one above.</p>
+      {subjects.length === 0 && !fetchError ? (
+        <p className="text-gray-500 mt-6">No subjects yet. Add one above.</p>
       ) : (
-        <ul className="space-y-3">
+        <ul className="space-y-3 mt-6">
           {subjects.map((subject) => (
             <li key={subject.id} className="border rounded p-4 flex justify-between items-center">
               <span className="font-medium">{subject.name}</span>

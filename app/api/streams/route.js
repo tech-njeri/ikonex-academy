@@ -3,82 +3,166 @@
 export const dynamic = 'force-dynamic'
 
 import { NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/authOptions'
 import prisma from '@/lib/prisma'
 
-// GET — fetch all streams from the database
+// GET — fetch all streams with their students
 export async function GET() {
+  const session = await getServerSession(authOptions)
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
   try {
     const streams = await prisma.stream.findMany({
       include: { students: true }
     })
     return NextResponse.json(streams)
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to fetch streams' }, { status: 500 })
+    console.error('[GET /api/streams]', error)
+    return NextResponse.json({ error: 'Failed to fetch streams.' }, { status: 500 })
   }
 }
-//The POST handler processes HTTP POST requests. It reads the JSON data from the request body, meaning the information sent by the client, and uses Prisma, which is the application's database access tool, to create a new record in the database. If the operation succeeds, it returns the created record as a JSON response; otherwise, it returns an error response with status code 500
-
 
 // POST — create a new stream
 export async function POST(request) {
-  try {
-    const body = await request.json()
-    const stream = await prisma.stream.create({
-      data: { name: body.name }
-    })
-    return NextResponse.json(stream)
-  } catch (error) {
-    return NextResponse.json({ error: 'Failed to create stream' }, { status: 500 })
+  const session = await getServerSession(authOptions)
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
-}
 
-//The GET handler retrieves all streams from the database using Prisma’s findMany method, including related students. It waits for the database query to complete and then returns the result as JSON. If an error occurs, it returns a 500 error response.
-
-export async function DELETE(request) {
   try {
     const body = await request.json()
+    const { name } = body
 
-    // Delete stream subject assignments FIRST
-    await prisma.streamSubject.deleteMany({
-      where: { streamId: body.id }
-    })
-
-    // Delete scores of all students in this stream
-    const students = await prisma.student.findMany({
-      where: { streamId: body.id }
-    })
-    for (const student of students) {
-      await prisma.score.deleteMany({
-        where: { studentId: student.id }
-      })
+    if (!name || typeof name !== 'string' || name.trim() === '') {
+      return NextResponse.json({ error: 'Stream name is required.' }, { status: 400 })
     }
 
-    // Delete students in this stream
-    await prisma.student.deleteMany({
-      where: { streamId: body.id }
+    // Prevent duplicate stream names
+    const existing = await prisma.stream.findFirst({
+      where: { name: name.trim() }
+    })
+    if (existing) {
+      return NextResponse.json(
+        { error: 'A stream with this name already exists.' },
+        { status: 409 }
+      )
+    }
+
+    const stream = await prisma.stream.create({
+      data: { name: name.trim() }
     })
 
-    // Finally delete the stream
-    await prisma.stream.delete({
-      where: { id: body.id }
-    })
-
-    return NextResponse.json({ message: 'Stream deleted' })
+    return NextResponse.json(stream, { status: 201 })
   } catch (error) {
-    console.error('DELETE STREAM ERROR:', error.message)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    console.error('[POST /api/streams]', error)
+    return NextResponse.json({ error: 'Failed to create stream.' }, { status: 500 })
   }
 }
 
+// PUT — update a stream name
 export async function PUT(request) {
+  const session = await getServerSession(authOptions)
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
   try {
     const body = await request.json()
-    const stream = await prisma.stream.update({
-      where: { id: body.id },
-      data: { name: body.name }
+    const { id, name } = body
+
+    if (!id) {
+      return NextResponse.json({ error: 'Stream id is required.' }, { status: 400 })
+    }
+    if (!name || typeof name !== 'string' || name.trim() === '') {
+      return NextResponse.json({ error: 'Stream name is required.' }, { status: 400 })
+    }
+
+    // Confirm stream exists
+    const existing = await prisma.stream.findUnique({ where: { id } })
+    if (!existing) {
+      return NextResponse.json({ error: 'Stream not found.' }, { status: 404 })
+    }
+
+    // Prevent renaming to a name that already exists on a different stream
+    const duplicate = await prisma.stream.findFirst({
+      where: { name: name.trim(), NOT: { id } }
     })
+    if (duplicate) {
+      return NextResponse.json(
+        { error: 'A stream with this name already exists.' },
+        { status: 409 }
+      )
+    }
+
+    const stream = await prisma.stream.update({
+      where: { id },
+      data: { name: name.trim() }
+    })
+
     return NextResponse.json(stream)
   } catch (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    console.error('[PUT /api/streams]', error)
+    return NextResponse.json({ error: 'Failed to update stream.' }, { status: 500 })
+  }
+}
+
+// DELETE — remove a stream and all related data
+export async function DELETE(request) {
+  const session = await getServerSession(authOptions)
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  try {
+    const body = await request.json()
+    const { id } = body
+
+    if (!id) {
+      return NextResponse.json({ error: 'Stream id is required.' }, { status: 400 })
+    }
+
+    // Confirm stream exists before attempting deletion
+    const existing = await prisma.stream.findUnique({ where: { id } })
+    if (!existing) {
+      return NextResponse.json({ error: 'Stream not found.' }, { status: 404 })
+    }
+
+    // Wrap all deletes in a transaction — if any step fails, all steps are rolled back
+    await prisma.$transaction(async (tx) => {
+      // Get all student ids in this stream
+      const students = await tx.student.findMany({
+        where: { streamId: id },
+        select: { id: true }
+      })
+      const studentIds = students.map(s => s.id)
+
+      // Delete all scores for all students in one query
+      await tx.score.deleteMany({
+        where: { studentId: { in: studentIds } }
+      })
+
+      // Delete all stream-subject assignments
+      await tx.streamSubject.deleteMany({
+        where: { streamId: id }
+      })
+
+      // Delete all students in the stream
+      await tx.student.deleteMany({
+        where: { streamId: id }
+      })
+
+      // Finally delete the stream itself
+      await tx.stream.delete({
+        where: { id }
+      })
+    })
+
+    return new NextResponse(null, { status: 204 })
+  } catch (error) {
+    console.error('[DELETE /api/streams]', error)
+    return NextResponse.json({ error: 'Failed to delete stream.' }, { status: 500 })
   }
 }
