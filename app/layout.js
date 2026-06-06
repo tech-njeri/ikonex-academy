@@ -1,8 +1,20 @@
-import { Geist } from 'next/font/google'
+import { Syne, DM_Mono } from 'next/font/google'
+import Navbar from '@/components/Navbar'
 import './globals.css'
-import Link from 'next/link'
 
-const geist = Geist({ subsets: ['latin'] })
+const syne = Syne({
+  subsets: ['latin'],
+  weight: ['400', '500', '700'],
+  variable: '--font-syne',
+  display: 'swap',
+})
+
+const dmMono = DM_Mono({
+  subsets: ['latin'],
+  weight: ['400', '500'],
+  variable: '--font-dm-mono',
+  display: 'swap',
+})
 
 export const metadata = {
   title: 'Ikonex Academy',
@@ -11,21 +23,10 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en">
-      <body className={geist.className}>
-        <nav className="bg-blue-700 text-white px-8 py-4 flex gap-6 flex-wrap">
-          <span className="font-bold text-lg mr-4">Ikonex Academy</span>
-          <Link href="/streams" className="hover:underline">Streams</Link>
-          <Link href="/students" className="hover:underline">Students</Link>
-          <Link href="/subjects" className="hover:underline">Subjects</Link>
-          <Link href="/stream-subjects" className="hover:underline">Assign Subjects</Link>
-          <Link href="/scores" className="hover:underline">Scores</Link>
-          <Link href="/results" className="hover:underline">Results</Link>
-          <Link href="/reports/class" className="hover:underline">Class Report</Link>
-        </nav>
-        <main>
-          {children}
-        </main>
+    <html lang="en" className={`${syne.variable} ${dmMono.variable}`}>
+      <body style={{ margin: 0, background: '#0a0a0f' }}>
+        <Navbar />
+        {children}
       </body>
     </html>
   )
