@@ -28,16 +28,16 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="border rounded p-8 w-full max-w-sm space-y-4 bg-white shadow">
-        <h1 className="text-2xl font-bold">Ikonex Academy</h1>
-        <p className="text-gray-500 text-sm">Sign in to continue</p>
+    <div className="min-h-screen flex items-center justify-center" style={{ background: '#0a0a0f' }}>
+      <div className="border border-gray-700 rounded p-8 w-full max-w-sm space-y-4 shadow" style={{ background: '#1a1a2e' }}>
+        <h1 className="text-2xl font-bold text-white">Ikonex Academy</h1>
+        <p className="text-gray-400 text-sm">Sign in to continue</p>
         <input
           type="email"
           placeholder="Email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="border rounded px-4 py-2 w-full"
+          className="border border-gray-600 rounded px-4 py-2 w-full bg-gray-900 text-white placeholder-gray-500"
         />
         <input
           type="password"
@@ -50,7 +50,7 @@ export default function LoginPage() {
         <button
           onClick={handleLogin}
           disabled={loading}
-          className="bg-blue-600 text-white px-6 py-2 rounded w-full hover:bg-blue-700 disabled:opacity-50"
+          className="border border-gray-600 rounded px-4 py-2 w-full bg-gray-900 text-white placeholder-gray-500"
         >
           {loading ? 'Signing in...' : 'Sign In'}
         </button>
