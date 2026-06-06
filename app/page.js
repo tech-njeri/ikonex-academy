@@ -7,7 +7,7 @@ const quickActions = [
   { href: '/students',        label: 'Register student',  desc: 'Add to a stream',       icon: 'ti-user-plus',        color: '#7c5cfc', bg: '#7c5cfc18' },
   { href: '/scores',          label: 'Record scores',     desc: 'Exam + CAT entry',       icon: 'ti-pencil',           color: '#4caf82', bg: '#4caf8218' },
   { href: '/results',         label: 'View results',      desc: 'Rankings + grades',      icon: 'ti-chart-bar',        color: '#f59e0b', bg: '#f59e0b18' },
-  { href: '/class-report',    label: 'Class report PDF',  desc: 'Download for stream',    icon: 'ti-file-text',        color: '#e2534a', bg: '#e2534a18' },
+  { href: '/reports/class-report',    label: 'Class report PDF',  desc: 'Download for stream',    icon: 'ti-file-text',        color: '#e2534a', bg: '#e2534a18' },
   { href: '/streams',         label: 'Manage streams',    desc: 'Create or edit',         icon: 'ti-layers-intersect', color: '#7c5cfc', bg: '#7c5cfc18' },
   { href: '/stream-subjects', label: 'Assign subjects',   desc: 'Link to streams',        icon: 'ti-link',             color: '#4caf82', bg: '#4caf8218' },
 ]

@@ -11,7 +11,7 @@ const navLinks = [
   { href: '/stream-subjects',label: 'Assign Subjects', icon: 'ti-link' },
   { href: '/scores',         label: 'Scores',          icon: 'ti-pencil' },
   { href: '/results',        label: 'Results',         icon: 'ti-chart-bar' },
-  { href: '/class-report',   label: 'Class Report',    icon: 'ti-file-text' },
+  { href: '/reports/class-report',   label: 'Class Report',    icon: 'ti-file-text' },
 ]
 
 export default function Navbar() {
