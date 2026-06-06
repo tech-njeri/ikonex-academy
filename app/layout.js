@@ -1,8 +1,6 @@
-'use client'
-import { usePathname } from 'next/navigation'
 import { Poppins } from 'next/font/google'
-import Navbar from '@/app/components/Navbar'
 import Providers from '@/app/components/Providers'
+import NavbarWrapper from '@/app/components/NavbarWrapper'
 import './globals.css'
 
 const poppins = Poppins({
@@ -13,14 +11,11 @@ const poppins = Poppins({
 })
 
 export default function RootLayout({ children }) {
-  const pathname = usePathname()
-  const showNavbar = pathname !== '/login'
-
   return (
-    <html lang="en" className={`${poppins.variable}`}>
+    <html lang="en" className={poppins.variable}>
       <body style={{ margin: 0, background: '#0a0a0f' }}>
         <Providers>
-          {showNavbar && <Navbar />}
+          <NavbarWrapper />
           {children}
         </Providers>
       </body>
