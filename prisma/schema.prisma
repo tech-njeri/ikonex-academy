@@ -1,65 +1,55 @@
 generator client {
   provider = "prisma-client-js"
-  output = "../node_modules/.prisma/client"
+  output   = "../node_modules/.prisma/client"
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
-  directUrl = env("DATABASE_URL")
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  directUrl  = env("DATABASE_URL")
 }
 
-model Stream {
-  id        Int      @id @default(autoincrement())
-  name      String   @unique
-  students  Student[]
-  subjects  StreamSubject[]
-  createdAt DateTime @default(now())
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  password      String
+  emailVerified DateTime?
+  image         String?
+  accounts      Account[]
+  sessions      Session[]
 }
 
-model Student {
-  id          Int      @id @default(autoincrement())
-  name        String
-  admissionNo String   @unique
-  streamId    Int
-  stream      Stream   @relation(fields: [streamId], references: [id])
-  scores      Score[]
-  createdAt   DateTime @default(now())
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
 }
 
-model Subject {
-  id       Int      @id @default(autoincrement())
-  name     String   @unique
-  streams  StreamSubject[]
-  scores   Score[]
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
-model StreamSubject {
-  id        Int     @id @default(autoincrement())
-  streamId  Int
-  subjectId Int
-  stream    Stream  @relation(fields: [streamId], references: [id])
-  subject   Subject @relation(fields: [subjectId], references: [id])
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
 
-  @@unique([streamId, subjectId])
-}
-
-model Score {
-  id         Int     @id @default(autoincrement())
-  studentId  Int
-  subjectId  Int
-  examScore  Float
-  catScore   Float
-  student    Student @relation(fields: [studentId], references: [id])
-  subject    Subject @relation(fields: [subjectId], references: [id])
-
-  @@unique([studentId, subjectId])
-}
-
-model GradeScale {
-  id       Int    @id @default(autoincrement())
-  minScore Float
-  maxScore Float
-  grade    String
-  points   Float
+  @@unique([identifier, token])
 }
