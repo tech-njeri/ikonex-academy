@@ -8,7 +8,7 @@ A full-stack web application for managing class streams, students, subjects, sco
 
 ## Live Demo
 
-- **Application:** https://ikonex-academy.vercel.app
+- **Application:** https://ikonex-academy-joy-njeri.vercel.app
 - **Repository:** https://github.com/tech-njeri/ikonex-academy
 
 ---
