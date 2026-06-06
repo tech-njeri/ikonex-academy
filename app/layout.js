@@ -1,3 +1,5 @@
+'use client'
+import { usePathname } from 'next/navigation'
 import { Syne, DM_Mono } from 'next/font/google'
 import Navbar from '@/app/components/Navbar'
 import Providers from '@/app/components/Providers'
@@ -9,7 +11,6 @@ const syne = Syne({
   variable: '--font-syne',
   display: 'swap',
 })
-
 const dmMono = DM_Mono({
   subsets: ['latin'],
   weight: ['400', '500'],
@@ -17,17 +18,15 @@ const dmMono = DM_Mono({
   display: 'swap',
 })
 
-export const metadata = {
-  title: 'Ikonex Academy',
-  description: 'Student Management System',
-}
-
 export default function RootLayout({ children }) {
+  const pathname = usePathname()
+  const showNavbar = pathname !== '/login'
+
   return (
     <html lang="en" className={`${syne.variable} ${dmMono.variable}`}>
       <body style={{ margin: 0, background: '#0a0a0f' }}>
         <Providers>
-          <Navbar />
+          {showNavbar && <Navbar />}
           {children}
         </Providers>
       </body>
