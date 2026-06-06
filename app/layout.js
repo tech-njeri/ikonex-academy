@@ -1,5 +1,5 @@
 import { Syne, DM_Mono } from 'next/font/google'
-import Navbar from '@/components/Navbar'
+import Navbar from '@/app/components/Navbar'
 import './globals.css'
 
 const syne = Syne({
